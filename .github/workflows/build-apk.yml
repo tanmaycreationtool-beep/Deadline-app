@@ -582,4 +582,42 @@ jobs:
                                   )
                                   .setContentText(
                                           message
+                                                - name: Create BootReceiver.java
+                                                run: |
+          cat > app/src/main/java/com/deadline/app/BootReceiver.java <<'EOF'
+          package com.deadline.app;
+
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+
+          public class BootReceiver extends BroadcastReceiver {
+
+              @Override
+              public void onReceive(Context context, Intent intent) {
+
+                  if (Intent.ACTION_BOOT_COMPLETED.equals(
+                          intent.getAction()
+                  )) {
+
+                      ReminderScheduler.scheduleNext(context);
+                  }
+              }
+          }
+          EOF
+
+      - name: Build APK
+        run: |
+          gradle assembleDebug
+
+      - name: Check APK
+        run: |
+          echo "APK files:"
+          find app/build/outputs/apk -type f -name "*.apk" -print
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Deadline-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
          
