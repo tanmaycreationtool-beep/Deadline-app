@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+viewport-fit=cover">
+
+<meta name="theme-color" content="#050505">
+
+<title>Deadline</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #050505;
+    color: #f5f5f5;
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+}
+
+body {
+    min-height: 100dvh;
+    overflow-x: hidden;
+}
+
+/* Ambient glow */
+
+body::before {
+    content: "";
+    position: fixed;
+
+    width: 280px;
+    height: 280px;
+
+    top: -150px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    background: rgba(255,255,255,0.06);
+
+    filter: blur(80px);
+
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+button,
+input {
+    font-family: inherit;
+}
+
+button {
+    border: none;
+    outline: none;
+}
+
+.app {
+    width: 100%;
+    min-height: 100dvh;
+
+    padding:
+        max(25px, env(safe-area-inset-top))
+        18px
+        max(28px, env(safe-area-inset-bottom))
+        18px;
+}
+
+.container {
+    width: min(100%, 500px);
+    margin: auto;
+}
+
+
+/* =========================
+   SCREENS
+========================= */
+
+.screen {
+    display: none;
+}
+
+.screen.active {
+    display: block;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.header {
+    padding-top: 8px;
+    margin-bottom: 34px;
+}
+
+.logo {
+    font-size: 31px;
+    font-weight: 750;
+
+    letter-spacing: -1.7px;
+
+    text-shadow:
+        0 0 18px rgba(255,255,255,0.16);
+}
+
+.subtitle {
+    margin-top: 7px;
+
+    color: #666;
+
+    font-size: 13px;
+
+    letter-spacing: 0.2px;
+}
+
+
+/* =========================
+   NEW GOAL
+========================= */
+
+.new-goal-btn {
+    position: relative;
+
+    width: 100%;
+    min-height: 60px;
+
+    border-radius: 19px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #dcdcdc
+        );
+
+    color: #050505;
+
+    font-size: 15px;
+    font-weight: 650;
+
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.15),
+        0 8px 35px rgba(255,255,255,0.07);
+
+    margin-bottom: 34px;
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease;
+}
+
+.new-goal-btn::after {
+    content: "";
+
+    position: absolute;
+
+    inset: 1px;
+
+    border-radius: 18px;
+
+    border: 1px solid
+        rgba(255,255,255,0.6);
+
+    pointer-events: none;
+}
+
+.new-goal-btn:active {
+    transform: scale(.975);
+
+    box-shadow:
+        0 0 25px
+        rgba(255,255,255,0.12);
+}
+
+
+/* =========================
+   SECTION
+========================= */
+
+.section-title {
+    color: #555;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: 2px;
+
+    text-transform: uppercase;
+
+    margin-bottom: 13px;
+}
+
+
+/* =========================
+   GOALS
+========================= */
+
+.goals {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 11px;
+}
+
+.goal-card {
+    position: relative;
+
+    width: 100%;
+
+    background:
+        linear-gradient(
+            145deg,
+            #111111,
+            #0b0b0b
+        );
+
+    border: 1px solid #1d1d1d;
+
+    border-radius: 21px;
+
+    padding: 19px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    overflow: hidden;
+
+    transition:
+        transform .15s ease,
+        border-color .15s ease,
+        background .15s ease;
+}
+
+.goal-card::before {
+    content: "";
+
+    position: absolute;
+
+    width: 100px;
+    height: 100px;
+
+    right: -60px;
+    top: -60px;
+
+    background:
+        rgba(255,255,255,0.04);
+
+    filter: blur(25px);
+
+    border-radius: 50%;
+}
+
+.goal-card:active {
+    transform: scale(.985);
+
+    border-color: #333;
+
+    background: #141414;
+}
+
+.goal-info {
+    min-width: 0;
+
+    flex: 1;
+}
+
+.goal-name {
+    font-size: 16px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.goal-date {
+    color: #666;
+
+    font-size: 12px;
+
+    margin-top: 7px;
+}
+
+.goal-days {
+    min-width: 65px;
+
+    text-align: right;
+
+    color: #666;
+
+    font-size: 11px;
+}
+
+.goal-days strong {
+    display: block;
+
+    color: #eee;
+
+    font-size: 20px;
+
+    font-weight: 650;
+
+    line-height: 1;
+
+    text-shadow:
+        0 0 15px
+        rgba(255,255,255,0.16);
+}
+
+.completed .goal-name {
+    color: #555;
+
+    text-decoration: line-through;
+}
+
+.completed .goal-days strong {
+    color: #444;
+}
+
+
+/* =========================
+   EMPTY
+========================= */
+
+.empty {
+    text-align: center;
+
+    padding: 48px 20px;
+
+    color: #444;
+
+    font-size: 13px;
+
+    line-height: 1.7;
+}
+
+
+/* =========================
+   DETAIL
+========================= */
+
+.back-btn {
+    background: transparent;
+
+    color: #666;
+
+    font-size: 13px;
+
+    padding: 7px 0;
+
+    margin-bottom: 27px;
+}
+
+.back-btn:active {
+    color: #aaa;
+}
+
+.detail-name {
+    font-size: clamp(
+        29px,
+        8vw,
+        43px
+    );
+
+    line-height: 1.03;
+
+    font-weight: 700;
+
+    letter-spacing: -1.8px;
+
+    margin-bottom: 10px;
+
+    word-break: break-word;
+
+    text-shadow:
+        0 0 25px
+        rgba(255,255,255,0.08);
+}
+
+.detail-date {
+    color: #666;
+
+    font-size: 13px;
+
+    margin-bottom: 38px;
+}
+
+
+/* =========================
+   COUNTDOWN
+========================= */
+
+.countdown {
+    position: relative;
+
+    text-align: center;
+
+    padding: 42px 10px 38px;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #171717 0%,
+            #0d0d0d 55%,
+            #090909 100%
+        );
+
+    border: 1px solid #202020;
+
+    border-radius: 29px;
+
+    margin-bottom: 11px;
+
+    overflow: hidden;
+
+    box-shadow:
+        inset 0 0 35px
+        rgba(255,255,255,0.015),
+
+        0 15px 50px
+        rgba(0,0,0,.35);
+}
+
+.countdown::before {
+    content: "";
+
+    position: absolute;
+
+    width: 190px;
+    height: 190px;
+
+    left: 50%;
+    top: 50%;
+
+    transform:
+        translate(-50%, -50%);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255,255,255,0.055),
+            transparent 68%
+        );
+
+    filter: blur(12px);
+
+    pointer-events: none;
+}
+
+.days-number {
+    position: relative;
+
+    font-size: clamp(
+        72px,
+        22vw,
+        115px
+    );
+
+    font-weight: 750;
+
+    line-height: .86;
+
+    letter-spacing: -6px;
+
+    color: #f7f7f7;
+
+    text-shadow:
+        0 0 12px
+        rgba(255,255,255,.13),
+
+        0 0 35px
+        rgba(255,255,255,.06);
+}
+
+.days-label {
+    position: relative;
+
+    color: #666;
+
+    font-size: 12px;
+
+    margin-top: 16px;
+
+    letter-spacing: .5px;
+}
+
+
+/* =========================
+   TIME
+========================= */
+
+.time-row {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 8px;
+
+    margin-bottom: 22px;
+}
+
+.time-box {
+    position: relative;
+
+    background: #0d0d0d;
+
+    border: 1px solid #1b1b1b;
+
+    border-radius: 17px;
+
+    text-align: center;
+
+    padding: 15px 5px;
+}
+
+.time-number {
+    font-size: 21px;
+
+    font-weight: 600;
+
+    color: #ddd;
+}
+
+.time-label {
+    color: #4f4f4f;
+
+    font-size: 9px;
+
+    margin-top: 6px;
+
+    letter-spacing: 1px;
+}
+
+
+/* =========================
+   PROGRESS
+========================= */
+
+.progress-section {
+    margin-bottom: 27px;
+}
+
+.progress-top {
+    display: flex;
+
+    justify-content: space-between;
+
+    color: #555;
+
+    font-size: 10px;
+
+    margin-bottom: 9px;
+
+    letter-spacing: .4px;
+}
+
+.progress-track {
+    width: 100%;
+
+    height: 4px;
+
+    border-radius: 10px;
+
+    background: #1c1c1c;
+
+    overflow: hidden;
+}
+
+.progress-bar {
+    width: 0%;
+
+    height: 100%;
+
+    background: #eee;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 0 10px
+        rgba(255,255,255,.55),
+
+        0 0 22px
+        rgba(255,255,255,.2);
+
+    transition:
+        width .5s ease;
+}
+
+
+/* =========================
+   MOTIVATION
+========================= */
+
+.motivation {
+    text-align: center;
+
+    color: #666;
+
+    font-size: 13px;
+
+    margin-bottom: 27px;
+
+    letter-spacing: .1px;
+}
+
+
+/* =========================
+   ACTIONS
+========================= */
+
+.actions {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 9px;
+}
+
+.action-btn {
+    min-height: 51px;
+
+    border-radius: 16px;
+
+    background: #111;
+
+    color: #aaa;
+
+    border: 1px solid #202020;
+
+    font-size: 13px;
+
+    transition:
+        background .15s ease,
+        border-color .15s ease;
+}
+
+.action-btn:active {
+    background: #181818;
+
+    border-color: #333;
+}
+
+.delete-btn {
+    color: #666;
+}
+
+
+/* =========================
+   MODAL
+========================= */
+
+.modal {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1000;
+
+    background:
+        rgba(0,0,0,.82);
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding:
+        max(16px, env(safe-area-inset-top))
+        16px
+        max(16px, env(safe-area-inset-bottom))
+        16px;
+
+    overflow-y: auto;
+
+    -webkit-overflow-scrolling: touch;
+}
+
+.modal.show {
+    display: flex;
+}
+
+
+/* =========================
+   MODAL BOX
+========================= */
+
+.modal-box {
+    position: relative;
+
+    width: min(100%, 430px);
+
+    background:
+        linear-gradient(
+            145deg,
+            #181818,
+            #101010
+        );
+
+    border: 1px solid #292929;
+
+    border-radius: 27px;
+
+    padding: 24px;
+
+    max-height: 90dvh;
+
+    overflow-y: auto;
+
+    -webkit-overflow-scrolling: touch;
+
+    margin: auto;
+
+    box-shadow:
+        0 25px 80px
+        rgba(0,0,0,.65),
+
+        0 0 40px
+        rgba(255,255,255,.025);
+}
+
+.modal-box::before {
+    content: "";
+
+    position: absolute;
+
+    width: 120px;
+    height: 120px;
+
+    top: -70px;
+    right: -50px;
+
+    background:
+        rgba(255,255,255,.05);
+
+    filter: blur(35px);
+
+    border-radius: 50%;
+
+    pointer-events: none;
+}
+
+.modal-title {
+    position: relative;
+
+    font-size: 22px;
+
+    font-weight: 650;
+
+    margin-bottom: 23px;
+
+    letter-spacing: -.5px;
+}
+
+
+/* =========================
+   FORM
+========================= */
+
+.field {
+    margin-bottom: 17px;
+}
+
+.field label {
+    display: block;
+
+    color: #666;
+
+    font-size: 10px;
+
+    margin-bottom: 8px;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+}
+
+.field input {
+    width: 100%;
+
+    height: 55px;
+
+    border-radius: 16px;
+
+    border: 1px solid #292929;
+
+    outline: none;
+
+    background: #0b0b0b;
+
+    color: #f1f1f1;
+
+    padding: 0 15px;
+
+    font-size: 16px;
+
+    -webkit-appearance: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+}
+
+.field input::placeholder {
+    color: #444;
+}
+
+.field input:focus {
+    border-color: #555;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(255,255,255,.035),
+
+        0 0 20px
+        rgba(255,255,255,.035);
+}
+
+
+/* =========================
+   MODAL BUTTONS
+========================= */
+
+.modal-actions {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 9px;
+
+    margin-top: 8px;
+}
+
+.modal-btn {
+    height: 52px;
+
+    border-radius: 16px;
+
+    font-size: 13px;
+}
+
+.cancel-btn {
+    background: #202020;
+
+    color: #999;
+
+    border: 1px solid #292929;
+}
+
+.save-btn {
+    position: relative;
+
+    background:
+        linear-gradient(
+            145deg,
+            #fff,
+            #dcdcdc
+        );
+
+    color: #050505;
+
+    font-weight: 650;
+
+    box-shadow:
+        0 0 25px
+        rgba(255,255,255,.07);
+}
+
+.save-btn:active {
+    transform: scale(.98);
+}
+
+
+/* =========================
+   SMALL HEIGHT
+========================= */
+
+@media (max-height: 600px) {
+
+    .modal {
+        align-items: flex-start;
+
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+
+    .modal-box {
+        max-height: 95dvh;
+    }
+
+}
+
+
+/* =========================
+   SMALL WIDTH
+========================= */
+
+@media (max-width: 340px) {
+
+    .app {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .goal-card {
+        padding: 16px;
+    }
+
+    .goal-name {
+        font-size: 15px;
+    }
+
+    .days-number {
+        font-size: 68px;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="app">
+
+<div class="container">
+
+
+<!-- =========================
+     HOME SCREEN
+========================= -->
+
+<div id="homeScreen" class="screen active">
+
+    <div class="header">
+
+        <div class="logo">
+            Deadline
+        </div>
+
+        <div class="subtitle">
+            Make your time count.
+        </div>
+
+    </div>
+
+
+    <button
+        class="new-goal-btn"
+        onclick="openNewGoal()">
+
+        + Create a new goal
+
+    </button>
+
+
+    <div class="section-title">
+        Your goals
+    </div>
+
+
+    <div
+        id="goalsList"
+        class="goals">
+    </div>
+
+</div>
+
+
+
+<!-- =========================
+     DETAIL SCREEN
+========================= -->
+
+<div id="detailScreen" class="screen">
+
+    <button
+        class="back-btn"
+        onclick="showHome()">
+
+        ← Back
+
+    </button>
+
+
+    <div
+        id="detailName"
+        class="detail-name">
+
+        Goal
+
+    </div>
+
+
+    <div
+        id="detailDate"
+        class="detail-date">
+
+        Deadline
+
+    </div>
+
+
+    <div class="countdown">
+
+        <div
+            id="daysNumber"
+            class="days-number">
+
+            0
+
+        </div>
+
+
+        <div
+            id="daysLabel"
+            class="days-label">
+
+            days remaining
+
+        </div>
+
+    </div>
+
+
+    <div class="time-row">
+
+        <div class="time-box">
+
+            <div
+                id="hoursNumber"
+                class="time-number">
+
+                0
+
+            </div>
+
+            <div class="time-label">
+                HOURS
+            </div>
+
+        </div>
+
+
+        <div class="time-box">
+
+            <div
+                id="minutesNumber"
+                class="time-number">
+
+                0
+
+            </div>
+
+            <div class="time-label">
+                MINUTES
+            </div>
+
+        </div>
+
+
+        <div class="time-box">
+
+            <div
+                id="secondsNumber"
+                class="time-number">
+
+                0
+
+            </div>
+
+            <div class="time-label">
+                SECONDS
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="progress-section">
+
+        <div class="progress-top">
+
+            <span>
+                TIME PROGRESS
+            </span>
+
+            <span id="progressText">
+                0%
+            </span>
+
+        </div>
+
+
+        <div class="progress-track">
+
+            <div
+                id="progressBar"
+                class="progress-bar">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div
+        id="motivation"
+        class="motivation">
+
+        Make today count.
+
+    </div>
+
+
+    <div class="actions">
+
+        <button
+            class="action-btn"
+            onclick="editCurrentGoal()">
+
+            Edit goal
+
+        </button>
+
+
+        <button
+            class="action-btn delete-btn"
+            onclick="deleteCurrentGoal()">
+
+            Delete
+
+        </button>
+
+    </div>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- =========================
+     GOAL MODAL
+========================= -->
+
+<div
+    id="goalModal"
+    class="modal">
+
+
+    <div class="modal-box">
+
+        <div
+            id="modalTitle"
+            class="modal-title">
+
+            New Goal
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="goalInput">
+                Goal
+            </label>
+
+            <input
+                id="goalInput"
+                type="text"
+                placeholder="What do you want to achieve?"
+                autocomplete="off"
+                maxlength="100">
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="dateInput">
+                Deadline
+            </label>
+
+            <input
+                id="dateInput"
+                type="date">
+
+        </div>
+
+
+        <div class="modal-actions">
+
+            <button
+                class="modal-btn cancel-btn"
+                onclick="closeModal()">
+
+                Cancel
+
+            </button>
+
+
+            <button
+                class="modal-btn save-btn"
+                onclick="saveGoal()">
+
+                Save
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+/* ==================================================
+   DEADLINE APP
+   Web App + Native Android Notification Bridge
+================================================== */
+
+
+/* =========================
+   STORAGE
+========================= */
+
+const STORAGE_KEY =
+    "deadlineGoals";
+
+
+let goals = [];
+
+let currentGoalId = null;
+
+let editingGoalId = null;
+
+let timer = null;
+
+
+/* =========================
+   ELEMENTS
+========================= */
+
+const homeScreen =
+    document.getElementById(
+        "homeScreen"
+    );
+
+
+const detailScreen =
+    document.getElementById(
+        "detailScreen"
+    );
+
+
+const goalsList =
+    document.getElementById(
+        "goalsList"
+    );
+
+
+const goalModal =
+    document.getElementById(
+        "goalModal"
+    );
+
+
+const goalInput =
+    document.getElementById(
+        "goalInput"
+    );
+
+
+const dateInput =
+    document.getElementById(
+        "dateInput"
+    );
+
+
+const modalTitle =
+    document.getElementById(
+        "modalTitle"
+    );
+
+
+const detailName =
+    document.getElementById(
+        "detailName"
+    );
+
+
+const detailDate =
+    document.getElementById(
+        "detailDate"
+    );
+
+
+const daysNumber =
+    document.getElementById(
+        "daysNumber"
+    );
+
+
+const daysLabel =
+    document.getElementById(
+        "daysLabel"
+    );
+
+
+const hoursNumber =
+    document.getElementById(
+        "hoursNumber"
+    );
+
+
+const minutesNumber =
+    document.getElementById(
+        "minutesNumber"
+    );
+
+
+const secondsNumber =
+    document.getElementById(
+        "secondsNumber"
+    );
+
+
+const progressBar =
+    document.getElementById(
+        "progressBar"
+    );
+
+
+const progressText =
+    document.getElementById(
+        "progressText"
+    );
+
+
+const motivation =
+    document.getElementById(
+        "motivation"
+    );
+
+
+/* ==================================================
+   ANDROID NOTIFICATION BRIDGE
+================================================== */
+
+/*
+   Browser preview-e AndroidBridge thakbe na.
+   APK-r native Android layer-e thakbe.
+
+   Goal create/edit/delete hole:
+   JavaScript -> AndroidBridge -> Native Android
+*/
+
+function syncGoalsWithAndroid() {
+
+    try {
+
+        if (
+            window.AndroidBridge &&
+            typeof
+            window.AndroidBridge.syncGoals
+            === "function"
+        ) {
+
+            window.AndroidBridge.syncGoals(
+                JSON.stringify(goals)
+            );
+
+        }
+
+    } catch (error) {
+
+        console.log(
+            "Android notification bridge unavailable."
+        );
+
+    }
+
+}
+
+
+/*
+   APK-te notification permission
+   request korar jonno bridge.
+*/
+
+function requestAndroidNotifications() {
+
+    try {
+
+        if (
+            window.AndroidBridge &&
+            typeof
+            window.AndroidBridge.requestNotificationPermission
+            === "function"
+        ) {
+
+            window.AndroidBridge
+                .requestNotificationPermission();
+
+        }
+
+    } catch (error) {
+
+        console.log(
+            "Notification permission bridge unavailable."
+        );
+
+    }
+
+}
+
+
+/* =========================
+   LOAD GOALS
+========================= */
+
+function loadGoals() {
+
+    try {
+
+        const saved =
+            localStorage.getItem(
+                STORAGE_KEY
+            );
+
+
+        goals =
+            saved
+                ? JSON.parse(saved)
+                : [];
+
+
+        if (
+            !Array.isArray(goals)
+        ) {
+
+            goals = [];
+
+        }
+
+    } catch (error) {
+
+        goals = [];
+
+    }
+
+
+    renderGoals();
+
+
+    /*
+       Existing goals APK-te
+       native notification sy
