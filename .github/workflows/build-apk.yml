@@ -1,0 +1,537 @@
+name: Build Deadline APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Gradle
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q gradle-8.10.2-bin.zip
+          echo "$PWD/gradle-8.10.2/bin" >> "$GITHUB_PATH"
+
+      - name: Create Android project
+        run: |
+          mkdir -p app/src/main/java/com/deadline/app
+          mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/assets
+
+          cp index.html app/src/main/assets/index.html
+          cp icon.png app/src/main/res/drawable/icon.png
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "Deadline"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.deadline.app'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.deadline.app'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+              <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+              <application
+                  android:theme="@style/AppTheme"
+                  android:label="Deadline"
+                  android:icon="@drawable/icon"
+                  android:allowBackup="true">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+
+                  </activity>
+
+                  <receiver
+                      android:name=".DeadlineReceiver"
+                      android:exported="false"/>
+
+                  <receiver
+                      android:name=".BootReceiver"
+                      android:exported="true">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                      </intent-filter>
+
+                  </receiver>
+
+              </application>
+
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+
+              <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowBackground">#000000</item>
+                  <item name="android:statusBarColor">#000000</item>
+                  <item name="android:navigationBarColor">#000000</item>
+                  <item name="android:windowLightStatusBar">false</item>
+              </style>
+
+          </resources>
+          EOF
+
+          cat > app/src/main/res/drawable/ic_notification.xml <<'EOF'
+          <vector
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+
+              <path
+                  android:fillColor="#FFFFFFFF"
+                  android:pathData="M12,22a2.5,2.5 0,0 0,2.45,-2h-4.9A2.5,2.5 0,0 0,12,22zM18,16v-5c0,-3.07 -1.63,-5.64 -4.5,-6.32V4a1.5,1.5 0,0 0,-3,0v0.68C7.63,5.36 6,7.93 6,11v5l-2,2v1h16v-1z"/>
+
+          </vector>
+          EOF
+
+          cat > app/src/main/java/com/deadline/app/MainActivity.java <<'EOF'
+          package com.deadline.app;
+
+          import android.Manifest;
+          import android.app.*;
+          import android.content.*;
+          import android.content.pm.PackageManager;
+          import android.os.*;
+          import android.webkit.*;
+          import java.util.*;
+          import org.json.*;
+
+          public class MainActivity extends Activity {
+
+              static final String PREFS = "DeadlineData";
+              static final String CHANNEL = "deadline_reminders";
+
+              WebView webView;
+
+              @Override
+              protected void onCreate(Bundle b) {
+                  super.onCreate(b);
+
+                  createChannel(this);
+
+                  webView = new WebView(this);
+
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setAllowFileAccess(true);
+
+                  webView.setWebViewClient(new WebViewClient());
+
+                  webView.addJavascriptInterface(new Bridge(this), "AndroidBridge");
+
+                  setContentView(webView);
+                  webView.loadUrl("file:///android_asset/index.html");
+
+                  schedule(this);
+              }
+
+              static void createChannel(Context c) {
+                  if (Build.VERSION.SDK_INT >= 26) {
+                      NotificationChannel channel =
+                          new NotificationChannel(
+                              CHANNEL,
+                              "Deadline Reminders",
+                              NotificationManager.IMPORTANCE_DEFAULT
+                          );
+
+                      channel.setDescription("Daily Deadline reminders");
+
+                      NotificationManager manager =
+                          c.getSystemService(NotificationManager.class);
+
+                      if (manager != null)
+                          manager.createNotificationChannel(channel);
+                  }
+              }
+
+              static void schedule(Context c) {
+
+                  AlarmManager alarm =
+                      (AlarmManager)c.getSystemService(Context.ALARM_SERVICE);
+
+                  if (alarm == null) return;
+
+                  Intent i = new Intent(c, DeadlineReceiver.class);
+
+                  PendingIntent p =
+                      PendingIntent.getBroadcast(
+                          c,
+                          100,
+                          i,
+                          PendingIntent.FLAG_UPDATE_CURRENT |
+                          PendingIntent.FLAG_IMMUTABLE
+                      );
+
+                  Calendar time = Calendar.getInstance();
+
+                  time.set(Calendar.HOUR_OF_DAY, 0);
+                  time.set(Calendar.MINUTE, 0);
+                  time.set(Calendar.SECOND, 5);
+                  time.set(Calendar.MILLISECOND, 0);
+
+                  if (time.getTimeInMillis() <= System.currentTimeMillis())
+                      time.add(Calendar.DAY_OF_YEAR, 1);
+
+                  if (Build.VERSION.SDK_INT >= 23)
+                      alarm.setAndAllowWhileIdle(
+                          AlarmManager.RTC_WAKEUP,
+                          time.getTimeInMillis(),
+                          p
+                      );
+                  else
+                      alarm.set(
+                          AlarmManager.RTC_WAKEUP,
+                          time.getTimeInMillis(),
+                          p
+                      );
+              }
+
+              public class Bridge {
+
+                  Context context;
+
+                  Bridge(Context c) {
+                      context = c;
+                  }
+
+                  @JavascriptInterface
+                  public void syncGoals(String json) {
+
+                      getSharedPreferences(PREFS, MODE_PRIVATE)
+                          .edit()
+                          .putString("goals", json)
+                          .apply();
+
+                      schedule(context);
+                  }
+
+                  @JavascriptInterface
+                  public void requestNotificationPermission() {
+
+                      if (Build.VERSION.SDK_INT >= 33) {
+
+                          if (checkSelfPermission(
+                              Manifest.permission.POST_NOTIFICATIONS
+                          ) != PackageManager.PERMISSION_GRANTED) {
+
+                              runOnUiThread(() ->
+                                  requestPermissions(
+                                      new String[]{
+                                          Manifest.permission.POST_NOTIFICATIONS
+                                      },
+                                      55
+                                  )
+                              );
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/deadline/app/DeadlineReceiver.java <<'EOF'
+          package com.deadline.app;
+
+          import android.app.*;
+          import android.content.*;
+          import android.os.Build;
+          import java.text.*;
+          import java.util.*;
+          import java.util.concurrent.*;
+          import org.json.*;
+
+          public class DeadlineReceiver extends BroadcastReceiver {
+
+              @Override
+              public void onReceive(Context context, Intent intent) {
+
+                  MainActivity.createChannel(context);
+
+                  String json =
+                      context.getSharedPreferences(
+                          MainActivity.PREFS,
+                          Context.MODE_PRIVATE
+                      ).getString("goals", "[]");
+
+                  try {
+
+                      JSONArray goals = new JSONArray(json);
+
+                      NotificationManager manager =
+                          (NotificationManager)
+                          context.getSystemService(
+                              Context.NOTIFICATION_SERVICE
+                          );
+
+                      SimpleDateFormat format =
+                          new SimpleDateFormat(
+                              "yyyy-MM-dd",
+                              Locale.US
+                          );
+
+                      for (int n = 0; n < goals.length(); n++) {
+
+                          JSONObject goal = goals.getJSONObject(n);
+
+                          String name =
+                              goal.optString(
+                                  "name",
+                                  "Your goal"
+                              );
+
+                          String dateText =
+                              goal.optString(
+                                  "date",
+                                  ""
+                              );
+
+                          if (dateText.isEmpty())
+                              continue;
+
+                          Date date = format.parse(dateText);
+
+                          if (date == null)
+                              continue;
+
+                          Calendar deadline =
+                              Calendar.getInstance();
+
+                          deadline.setTime(date);
+
+                          deadline.set(
+                              Calendar.HOUR_OF_DAY,
+                              23
+                          );
+
+                          deadline.set(
+                              Calendar.MINUTE,
+                              59
+                          );
+
+                          deadline.set(
+                              Calendar.SECOND,
+                              59
+                          );
+
+                          deadline.set(
+                              Calendar.MILLISECOND,
+                              999
+                          );
+
+                          long difference =
+                              deadline.getTimeInMillis()
+                              - System.currentTimeMillis();
+
+                          long days =
+                              TimeUnit.MILLISECONDS.toDays(
+                                  difference
+                              );
+
+                          if (days < 0)
+                              continue;
+
+                          String message;
+
+                          if (days == 0) {
+
+                              message =
+                                  name +
+                                  " — Your deadline is today.";
+
+                          } else if (days <= 7) {
+
+                              message =
+                                  name +
+                                  " — " +
+                                  days +
+                                  " days left. Stay focused.";
+
+                          } else {
+
+                              message =
+                                  name +
+                                  " — " +
+                                  days +
+                                  " days remaining.";
+                          }
+
+                          Intent open =
+                              new Intent(
+                                  context,
+                                  MainActivity.class
+                              );
+
+                          PendingIntent pending =
+                              PendingIntent.getActivity(
+                                  context,
+                                  1000 + n,
+                                  open,
+                                  PendingIntent.FLAG_UPDATE_CURRENT |
+                                  PendingIntent.FLAG_IMMUTABLE
+                              );
+
+                          Notification.Builder notification;
+
+                          if (Build.VERSION.SDK_INT >= 26) {
+
+                              notification =
+                                  new Notification.Builder(
+                                      context,
+                                      MainActivity.CHANNEL
+                                  );
+
+                          } else {
+
+                              notification =
+                                  new Notification.Builder(context);
+                          }
+
+                          notification
+                              .setSmallIcon(
+                                  R.drawable.ic_notification
+                              )
+                              .setContentTitle("Deadline")
+                              .setContentText(message)
+                              .setStyle(
+                                  new Notification.BigTextStyle()
+                                      .bigText(message)
+                              )
+                              .setAutoCancel(true)
+                              .setContentIntent(pending);
+
+                          if (manager != null)
+                              manager.notify(
+                                  1000 + n,
+                                  notification.build()
+                              );
+                      }
+
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                  }
+
+                  MainActivity.schedule(context);
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/deadline/app/BootReceiver.java <<'EOF'
+          package com.deadline.app;
+
+          import android.content.*;
+
+          public class BootReceiver extends BroadcastReceiver {
+
+              @Override
+              public void onReceive(
+                  Context context,
+                  Intent intent
+              ) {
+
+                  if (Intent.ACTION_BOOT_COMPLETED.equals(
+                      intent.getAction()
+                  )) {
+
+                      MainActivity.schedule(context);
+                  }
+              }
+          }
+          EOF
+
+      - name: Build APK
+        run: gradle assembleDebug
+
+      - name: Check APK
+        run: |
+          echo "APK:"
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Deadline-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
